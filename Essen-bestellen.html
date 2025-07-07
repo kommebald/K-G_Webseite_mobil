@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Essen bestellen</title>
+  <style>
+    body {
+      background-color: #1e1e2f;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    body.light {
+      background-color: #f5f5f5;
+      color: #111;
+    }
+    h1 {
+      font-size: 1.4em;
+      text-align: center;
+    }
+    .steuerung {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    .steuerung input, .steuerung button {
+      padding: 10px;
+      font-size: 1em;
+    }
+    .gerichte-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+    .gericht {
+      background-color: #2e2e3f;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 10px;
+      width: 100%;
+      max-width: 200px;
+    }
+    body.light .gericht {
+      background-color: #fff;
+      border-color: #ccc;
+    }
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.9em;
+    }
+    button {
+      border: none;
+      border-radius: 5px;
+      background-color: #5865F2;
+      color: white;
+      cursor: pointer;
+    }
+    body.light button {
+      background-color: #0078d7;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Essen bestellen</h1>
+
+<label>Wohin soll geliefert werden?
+  <input type="text" id="zielort" placeholder="z. B. Raum 3B, EG" style="width: 100%; max-width: 300px;">
+</label>
+
+<div class="steuerung">
+  <input type="number" id="menge" value="1" min="1">
+  <button onclick="auswahlKategorie('alle')">Alle</button>
+  <button onclick="auswahlKategorie('Getränke')">Getränke</button>
+  <button onclick="auswahlKategorie('Hauptgerichte')">Hauptgerichte</button>
+  <button onclick="auswahlKategorie('Vorspeisen')">Vorspeisen</button>
+  <button onclick="auswahlKategorie('Süßspeisen')">Süßspeisen</button>
+  <button onclick="reset()">Zurücksetzen</button>
+</div>
+
+<div id="gerichte-bereiche"></div>
+
+<button onclick="bestellungAbsenden()" style="margin-top: 20px; width: 100%; max-width: 300px;">Bestellung an Discord senden</button>
+<button onclick="window.location.href='Webseite.html'" style="margin-top: 10px; width: 100%; max-width: 300px;">Zurück</button>
+
+<h2 id="gesamt">Gesamt: 0 €</h2>
+
+<div class="footer">Made by kommebald</div>
+
+<script>
+const webhookURL = "https://discord.com/api/webhooks/1391809484564992141/fZDbZv_eIr4YQml2QmMv6kdrY5SG1JqhikobrbKJpUDcvWrzWBojawq6Itnj6REknDIG"
+
+const gerichte = {
+  'Vorspeisen': [
+    ['Bruschetta mit Tomaten & Basilikum', 750],
+    ['Salat aller Art', 400],
+    ['Suppen aller Art', 500],
+  ],
+  'Hauptgerichte': [
+    ['Döner', 800],
+    ['Spaghetti Bolognese', 850],
+    ['Bratwurst im Brötchen', 600],
+    ['Currywurst mit Pommes', 700],
+    ['Kleine Pommes', 400],
+    ['Große Pommes', 500],
+    ['Milchreis', 650],
+    ['Königsberger Klopse', 700],
+    ['Rindfleisch Berliner Art', 2400],
+    ['Schnitzel', 1700],
+    ['Buletten mit Kartoffelsalat', 900],
+    ['Pizza aller Art', 1200],
+    ['Cheeseburger', 700],
+    ['Hamburger', 600],
+  ],
+  'Getränke': [
+    ['Espresso', 140],
+    ['Cappuccino', 280],
+    ['Schwarzer Tee', 200],
+    ['Grüner Tee', 250],
+    ['Kräuter- und Früchtetee', 250],
+    ['Heiße Schokolade', 300],
+    ['Fanta', 180],
+    ['Cola', 180],
+    ['Säfte', 180],
+    ['Stilles Wasser', 180],
+    ['Sprudel Wasser', 180],
+    ['Ayran', 150],
+  ],
+  'Süßspeisen': [
+    ['Kuchen aller Art', 250],
+    ['Berliner / Pfannkuchen', 200],
+    ['Waffel', 250],
+    ['Quarkbällchen (5 Stück)', 200],
+    ['Rote Grütze', 400],
+    ['Eiskugel (versch. Sorten)', 200],
+    ['Apfelstrudel', 600],
+    ['Hamburger Franzbrötchen', 200],
+  ]
+};
+
+function render() {
+  const bereiche = document.getElementById('gerichte-bereiche');
+  bereiche.innerHTML = '';
+  Object.entries(gerichte).forEach(([kategorie, items]) => {
+    const section = document.createElement('section');
+    const heading = document.createElement('h2');
+    heading.textContent = kategorie;
+    section.appendChild(heading);
+
+    const container = document.createElement('div');
+    container.className = 'gerichte-container';
+
+    items.forEach(([name, preis]) => {
+      const div = document.createElement('div');
+      div.className = 'gericht';
+      div.dataset.kategorie = kategorie;
+      div.dataset.name = name;
+
+      div.innerHTML = `
+        <strong>${name} (${preis} €)</strong><br>
+        <input type="number" min="0" value="0" data-preis="${preis}" oninput="updateTotal()">
+      `;
+      container.appendChild(div);
+    });
+
+    section.appendChild(container);
+    bereiche.appendChild(section);
+  });
+}
+
+function updateTotal() {
+  let summe = 0;
+  document.querySelectorAll('.gericht input').forEach(input => {
+    const preis = parseInt(input.dataset.preis) || 0;
+    const menge = parseInt(input.value) || 0;
+    summe += preis * menge;
+  });
+  document.getElementById('gesamt').textContent = `Gesamt: ${summe} €`;
+}
+
+function auswahlKategorie(kategorie) {
+  const menge = parseInt(document.getElementById('menge').value) || 1;
+  document.querySelectorAll('.gericht').forEach(div => {
+    if (kategorie === 'alle' || div.dataset.kategorie === kategorie) {
+      const input = div.querySelector('input');
+      input.value = menge;
+    }
+  });
+  updateTotal();
+}
+
+function reset() {
+  document.querySelectorAll('.gericht input').forEach(input => input.value = 0);
+  updateTotal();
+}
+
+function bestellungAbsenden() {
+  const zielort = document.getElementById("zielort").value.trim();
+  const discordName = localStorage.getItem("discordName") || "Unbekannt";
+
+  if (!zielort) {
+    alert("Bitte gib an, wohin geliefert werden soll.");
+    return;
+  }
+
+  const bestellteGerichte = [];
+  let summe = 0;
+
+  document.querySelectorAll('.gericht').forEach(div => {
+    const input = div.querySelector('input');
+    const menge = parseInt(input.value);
+    const preis = parseInt(input.dataset.preis);
+    if (menge > 0) {
+      const name = div.dataset.name;
+      bestellteGerichte.push(`${menge}× ${name} (${preis} €)`);
+      summe += menge * preis;
+    }
+  });
+
+  if (bestellteGerichte.length === 0) {
+    alert("Du hast nichts ausgewählt!");
+    return;
+  }
+
+  const nachricht = {
+    content:
+      "||<@&1349057747236425900>||\n" +
+      `**Neue Essensbestellung von ${discordName}:**\n` +
+      bestellteGerichte.join("\n") +
+      `\n\n📍 **Wohin:** ${zielort}` +
+      `\n💰 **Gesamtbetrag:** ${summe} €`
+  };
+
+  fetch(webhookURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(nachricht)
+  }).then(res => {
+    if (res.ok) {
+      alert("Bestellung wurde erfolgreich an Discord gesendet!");
+    } else {
+      alert("Fehler beim Senden an Discord.");
+    }
+  }).catch(() => alert("Netzwerkfehler beim Senden."));
+}
+
+const theme = localStorage.getItem("theme");
+if (theme === "light") {
+  document.body.classList.add("light");
+}
+
+render();
+</script>
+
+</body>
+</html>
