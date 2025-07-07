@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Callback</title>
+  <style>
+    body {
+      background-color: #1e1e2f;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    body.light {
+      background-color: #f5f5f5;
+      color: #111;
+    }
+    .box {
+      max-width: 400px;
+      margin: auto;
+      padding: 20px;
+      border-radius: 8px;
+      background-color: #2e2e3f;
+    }
+    body.light .box {
+      background-color: #fff;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Login erfolgreich</h1>
+    <p id="name">Lade Benutzerdaten ...</p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.hash.substr(1));
+    const accessToken = params.get("access_token");
+
+    if (accessToken) {
+      fetch("https://discord.com/api/users/@me", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("name").innerText = `Willkommen, ${data.username}!`;
+          localStorage.setItem("discordName", data.username);
+          setTimeout(() => {
+            window.location.href = "Webseite.html";
+          }, 2000);
+        });
+    } else {
+      document.getElementById("name").innerText = "Fehler beim Login.";
+    }
+
+    const theme = localStorage.getItem("theme");
+    if (theme === "light") {
+      document.body.classList.add("light");
+    }
+  </script>
+</body>
+</html>
